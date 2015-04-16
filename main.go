@@ -1,26 +1,42 @@
 package main
 
 import (
-	"io"
+	"flag"
+	"github.com/gorilla/websocket"
+	"log"
 	"net/http"
+	"text/template"
 )
 
-func hello(res http.ResponseWriter, req *http.Request) {
-	res.Header().Set("Content-Type", "text/html")
-	io.WriteString(
-		res,
-		`<doctype html>
-        <html>
-        <head>
-            <title>Hello World</title>
-        </head>
-        <body>
-        Hello world, bruh!
-        </body>
-        </html>`)
+var addr = flag.String("addr", ":8080", "http service address")
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin:     func(r *http.Request) bool { return true },
+}
+
+func serveWebS(w http.ResponseWriter, r *http.Request) {
+	log.Println("Serving up that socket son.")
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", 405)
+		return
+	}
+
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	ws.NextReader()
+	go ws.NextWriter(websocket.TextMessage)
 }
 
 func main() {
-	http.HandleFunc("/", hello)
-	http.ListenAndServe(":9000", nil)
+	flag.Parse()
+	http.HandleFunc("/", serveHome)
+	http.HandleFunc("/ws", serveWebS)
+	err := http.ListenAndServe(*addr, nil)
+	if err != nil {
+		log.Fatal("ListenAndServe: ", err)
+	}
 }
