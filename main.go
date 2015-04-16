@@ -2,10 +2,10 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
-	"text/template"
 )
 
 var addr = flag.String("addr", ":8080", "http service address")
@@ -15,10 +15,19 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin:     func(r *http.Request) bool { return true },
 }
 
+func serveHome(w http.ResponseWriter, r *http.Request) {
+	log.Println("Serving up home")
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	fmt.Fprintf(w, "Welcome, bruh")
+}
+
 func serveWebS(w http.ResponseWriter, r *http.Request) {
 	log.Println("Serving up that socket son.")
 	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", 405)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
